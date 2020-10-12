@@ -1,6 +1,6 @@
 {
   "name": "@nordfjord/nestjs-cqrs-es",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "NestJS CQRS connector for EventStoreDB",
   "author": "Einar Norðfjörð <einar@nordfjord.io>",
   "license": "MIT",
