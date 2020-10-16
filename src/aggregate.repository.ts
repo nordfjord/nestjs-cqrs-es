@@ -23,6 +23,7 @@ export class AggregateRepository<T extends AggregateRoot<Event>> {
 
   async save(aggregate: T) {
     await this.eventStore.publishAll(aggregate.getUncommittedEvents())
+    aggregate.uncommit()
   }
 
   private create(id: string) {

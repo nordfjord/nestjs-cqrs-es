@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
+import { IEventPublisher } from '@nestjs/cqrs'
 import {
   EventStoreNodeConnection,
   createConnection,
@@ -7,16 +8,15 @@ import {
   createJsonEventData,
   WriteResult,
 } from 'node-eventstore-client'
-import { Subject } from 'rxjs'
 import { Config } from './contract/config'
 import { EVENT_STORE_SETTINGS_TOKEN } from './contract/constant'
 import { Event } from './event'
 import { EventTransformerStorage } from './event-transformer.storage'
+import { IEventStore } from './interfaces/eventstore.interface'
 
 @Injectable()
-export class EventStore {
+export class EventStore implements IEventStore, IEventPublisher<Event> {
   client: EventStoreNodeConnection
-  subject$?: Subject<any>
   isConnected = false
 
   constructor(
