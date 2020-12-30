@@ -12,10 +12,10 @@ import { Config } from './contract/config'
 import { EVENT_STORE_SETTINGS_TOKEN } from './contract/constant'
 import { Event } from './event'
 import { EventTransformerStorage } from './event-transformer.storage'
-import { IEventStore } from './interfaces/eventstore.interface'
+import { IEventStore, IEventsToSave } from './interfaces/eventstore.interface'
 
 @Injectable()
-export class EventStore implements IEventStore, IEventPublisher<Event> {
+export class EventStore implements IEventStore {
   client: EventStoreNodeConnection
   isConnected = false
 
@@ -66,28 +66,12 @@ export class EventStore implements IEventStore, IEventPublisher<Event> {
     return eventPayload
   }
 
-  async publish(event: Event): Promise<WriteResult | undefined> {
-    if (!event) {
-      return
-    }
-
-    const eventPayload = this.createPayload(event)
-
-    await this.client.appendToStream(event.eventStreamId, event.version, [
-      eventPayload,
-    ])
-  }
-
-  async publishAll(events: Event[]) {
+  async save({ streamId, events, expectedVersion }: IEventsToSave) {
     if (!events.length) return
 
-    const first = events[0]
-
-    const version = first.version
-
-    return await this.client.appendToStream(
-      first.eventStreamId,
-      version,
+    await this.client.appendToStream(
+      streamId,
+      expectedVersion,
       events.map(x => this.createPayload(x)),
     )
   }

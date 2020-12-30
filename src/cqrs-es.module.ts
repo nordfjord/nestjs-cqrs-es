@@ -1,4 +1,4 @@
-import { DynamicModule, Module, Provider } from '@nestjs/common'
+import { DynamicModule, Module, Provider, Type } from '@nestjs/common'
 import { AggregateRepository } from './aggregate.repository'
 import { Config } from './contract/config'
 import { EventStoreCoreModule } from './cqrs-es-core.module'

@@ -1,13 +1,17 @@
-import { AggregateRoot } from '@nestjs/cqrs'
+import { AggregateRoot } from '../aggregate-root'
 import { Event } from '../event'
 import { getRepositoryToken } from './repository'
 
 export class TestAggregateRepository<T extends AggregateRoot<Event>> {
   private events: Record<string, Event[]> = {}
-  constructor(private Aggregate: Function) {}
+  private category: string
+  constructor(private Aggregate: Function) {
+    this.category = Aggregate.name
+  }
   async findOne(id: string) {
-    const events = this.events[id] || (this.events[id] = [])
     const aggregate = this.create(id)
+    const events =
+      this.events[aggregate.streamId] || (this.events[aggregate.streamId] = [])
     for (const event of events) {
       aggregate.apply(event, true)
     }
@@ -15,17 +19,20 @@ export class TestAggregateRepository<T extends AggregateRoot<Event>> {
   }
 
   async save(a: T) {
-    const events = a.getUncommittedEvents()
-    this.events[(a as any).id].push(...events)
-    a.uncommit()
+    const eventsToSave = a.getUncommittedEvents()
+    const currentEvents = this.events[eventsToSave.streamId]
+    if (eventsToSave.expectedVersion !== currentEvents.length - 1)
+      throw new Error('Concurrency exception')
+    currentEvents.push(...eventsToSave.events)
+    a.commit()
   }
 
   getEventsFor(id: string) {
-    return this.events[id]
+    return this.events[this.create(id).streamId]
   }
 
   create(id: string) {
-    return new (this.Aggregate as any)(id) as T
+    return new (this.Aggregate as any)(this.category, id) as T
   }
 
   static forAggregate<T extends AggregateRoot<Event>>(aggregate: Function) {

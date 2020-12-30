@@ -1,10 +1,12 @@
-import { AggregateRoot } from '@nestjs/cqrs'
+import { Inject } from '@nestjs/common'
+import { AggregateRoot } from './aggregate-root'
 import { Event } from './event'
 import { EventStore } from './eventstore'
+import { IEventStore } from './interfaces/eventstore.interface'
 
 export class AggregateRepository<T extends AggregateRoot<Event>> {
   constructor(
-    private readonly eventStore: EventStore,
+    @Inject(EventStore) private readonly eventStore: IEventStore,
     private readonly Aggregate: Function,
     private readonly category: string,
   ) {}
@@ -22,11 +24,11 @@ export class AggregateRepository<T extends AggregateRoot<Event>> {
   }
 
   async save(aggregate: T) {
-    await this.eventStore.publishAll(aggregate.getUncommittedEvents())
-    aggregate.uncommit()
+    await this.eventStore.save(aggregate.getUncommittedEvents())
+    aggregate.commit()
   }
 
   private create(id: string) {
-    return new (this.Aggregate as any)(id) as T
+    return new (this.Aggregate as any)(this.category, id) as T
   }
 }

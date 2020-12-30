@@ -1,5 +1,11 @@
-import { DynamicModule, Global, Module, Type } from '@nestjs/common'
-import { CqrsModule } from '@nestjs/cqrs'
+import {
+  DynamicModule,
+  Global,
+  Module,
+  OnModuleInit,
+  Type,
+} from '@nestjs/common'
+import { CqrsModule, EventBus } from '@nestjs/cqrs'
 import { Config } from './contract/config'
 import {
   EventStoreModuleAsyncOptions,
@@ -7,12 +13,25 @@ import {
 } from './interfaces/options.interface'
 import { EVENT_STORE_SETTINGS_TOKEN } from './contract/constant'
 import { EventStore } from './eventstore'
+import { Event } from './event'
 
 @Global()
 @Module({
   imports: [CqrsModule],
 })
-export class EventStoreCoreModule {
+export class EventStoreCoreModule implements OnModuleInit {
+  constructor(
+    private readonly eventBus: EventBus<Event>,
+    private readonly eventStore: EventStore,
+  ) {}
+
+  async onModuleInit() {
+    await this.eventStore.client.subscribeToAll(true, (s, resolvedEvent) => {
+      const event = this.eventStore.convertEvent(resolvedEvent)
+      if (event) this.eventBus.subject$.next(event)
+    })
+  }
+
   static forRoot(config: Config): DynamicModule {
     return {
       module: EventStoreCoreModule,
